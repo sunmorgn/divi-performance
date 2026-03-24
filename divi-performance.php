@@ -162,17 +162,43 @@ add_filter( 'et_pb_google_fonts_url', function ( $url ) {
 } );
 
 
-// ─── 6. ASYNC LOAD DIPI FONT CSS ─────────────────────────────────────────────
-// DIPI (Divi Plus) registers dipi-font.min.css as render-blocking. It only
-// provides supplemental icon glyphs — not needed before first paint.
+// ─── 6. DIVI PIXEL (DIPI) OPTIMIZATIONS ──────────────────────────────────────
+// Divi Pixel is a widely-used Divi addon. These handles were verified against
+// the plugin source — update handle names if Divi Pixel changes them.
+//
+// CSS handles: async-loaded (not needed before first paint)
+// JS handles:  deferred (interaction/animation only)
+
 add_filter( 'style_loader_tag', function ( $tag, $handle ) {
-    if ( $handle !== 'dipi-font-css' ) {
+
+    static $async_handles = [
+        'dipi_font',                       // dipi-font.min.css — icon glyphs (frontend + admin)
+        'dipi_hamburgers_css',             // hamburgers.min.css — hamburger animation CSS
+        'dipi-popup-maker-popup-effect',   // popup_effect.min.css — popup transition effects
+    ];
+
+    if ( ! in_array( $handle, $async_handles, true ) ) {
         return $tag;
     }
+
     $tag = str_replace( "rel='stylesheet'", "rel='preload' as='style' onload=\"this.onload=null;this.rel='stylesheet'\"", $tag );
     $tag = str_replace( 'rel="stylesheet"', 'rel="preload" as="style" onload="this.onload=null;this.rel=\'stylesheet\'"', $tag );
     return $tag;
+
 }, 10, 2 );
+
+add_action( 'wp_enqueue_scripts', function () {
+
+    $defer_handles = [
+        'dipi_hamburgers_js',              // hamburger.min.js — hamburger toggle animation
+        'dipi-popup-maker-popup-effect',   // popup_effect.min.js — popup transitions
+    ];
+
+    foreach ( $defer_handles as $handle ) {
+        wp_script_add_data( $handle, 'strategy', 'defer' );
+    }
+
+}, 100 );
 
 
 // ─── 8. REMOVE UNUSED DIVI FONT AWESOME ICONS ────────────────────────────────

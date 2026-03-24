@@ -13,7 +13,7 @@ A WordPress plugin that fixes Divi-specific performance and accessibility issues
 | 4 | **Defer Divi scripts** | `scripts.min.js` was blocking the main thread for ~2,900ms after LCP. Uses WP 6.3 native defer API + `script_loader_tag` fallback |
 | 5 | **Async Google Fonts** | Converts render-blocking `<link rel="stylesheet">` to `preload` + `onload` swap pattern |
 | 5b | **`display=swap` on Divi font URL** | Adds `?display=swap` to Divi's Google Fonts URL via `et_pb_google_fonts_url` — belt-and-suspenders in case a caching plugin bypasses the tag filter |
-| 6 | **Async DIPI font CSS** | Same treatment for `dipi-font.min.css` (Divi Plus addon) |
+| 6 | **Divi Pixel (DIPI) optimizations** | Async CSS: `dipi_font`, `dipi_hamburgers_css`, `dipi-popup-maker-popup-effect`. Defer JS: `dipi_hamburgers_js`, `dipi-popup-maker-popup-effect`. Handles verified against Divi Pixel source. |
 | 8 | **FA icons removal** | Commented out — uncomment if you've confirmed Font Awesome icons aren't used |
 | 9 | **HTML output buffer** | Fixes Divi markup post-render: adds `role="main"`, copies `title` → `aria-label` on social links, derives `aria-label` from href slug on image-wrapped links |
 
@@ -25,6 +25,14 @@ Things that look generic but are actually site-specific — handle these in your
 - **Mega-menu `media` attribute** — depends on the child theme's enqueue handle name
 - **DNS prefetch domains** — site-specific external links
 - **LCP image preloads** — image paths are site-specific
+
+## Conflicts
+
+**NitroPack / WP Rocket / similar caching plugins** — these plugins also defer scripts and async-load CSS. Running both will double-process the same resources. If NitroPack is active:
+- Disable its script deferral and CSS async features, OR
+- Deactivate this plugin and let NitroPack handle it instead
+
+Check which is doing a better job with a PageSpeed test before/after.
 
 ## Required Divi admin settings
 
