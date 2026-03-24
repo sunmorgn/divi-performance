@@ -2,6 +2,17 @@
 
 A WordPress plugin that fixes Divi-specific performance and accessibility issues. Drop it into any Divi site — no configuration, no site-specific code.
 
+## Measured impact (local, Slow 4G, mobile Lighthouse)
+
+| Test | Performance | A11y | BP | SEO |
+|---|---|---|---|---|
+| No plugins | 70 | 84 | 100 | 92 |
+| Plugin active | 74 | 96 | 100 | 100 |
+
+FCP: 2.3s → 2.0s · LCP: 9.9s → 8.2s · Speed Index: 3.2s → 2.0s
+
+Production impact will be larger — local TTFB is ~530ms vs ~59ms on Cloudflare CDN.
+
 ## What it does
 
 | # | Fix | Why |
