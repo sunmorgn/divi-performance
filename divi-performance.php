@@ -68,35 +68,14 @@ add_action( 'wp_default_scripts', function ( $scripts ) {
 
 // ─── 6. DEFER DIVI NON-CRITICAL SCRIPTS ──────────────────────────────────────
 // Divi's scripts.min.js blocks the main thread after the hero image loads.
-// Strategy: WP 6.3 native defer API first, script_loader_tag filter as fallback
-// for handles registered late or assets loaded via Divi's dynamic asset system.
+// Strategy: script_loader_tag filter only — do NOT use wp_script_add_data('strategy','defer')
+// because WP 6.3 propagates defer to dependencies (causes "jQuery is not defined" errors
+// when divi-custom-script's jquery dependency gets deferred along with it).
 //
 // Safe to defer: interaction scripts, animations, sticky, lightbox, video sizing.
-// NOT deferred: jquery-core (inline localize data depends on it being synchronous).
+// NOT deferred: jquery-core, jquery (must stay synchronous for inline scripts).
 
-add_action( 'wp_enqueue_scripts', function () {
-
-    $defer_handles = [
-        'divi-custom-script',                  // themes/Divi/js/scripts.min.js
-        'smoothscroll',                        // smooth scrolling
-        'fitvids',                             // responsive video sizing
-        'salvattore',                          // masonry grid layout
-        'easypiechart',                        // animated circle counters
-        'magnific-popup',                      // lightbox
-        'et-builder-modules-script-motion',    // entrance/scroll animations
-        'et-builder-modules-script-sticky',    // sticky rows/sections/columns
-        'et-smooth-scroll',
-        'et_shortcodes_js',
-        'et_pb_custom',
-    ];
-
-    foreach ( $defer_handles as $handle ) {
-        wp_script_add_data( $handle, 'strategy', 'defer' );
-    }
-
-}, 100 );
-
-// Fallback: catch handles registered late or matched by URL substring.
+// Catch handles registered late or matched by URL substring.
 add_filter( 'script_loader_tag', function ( $tag, $handle, $src ) {
 
     static $defer_handles = [
@@ -113,6 +92,8 @@ add_filter( 'script_loader_tag', function ( $tag, $handle, $src ) {
         'et_pb_custom',
         'et-core-admin',
         'et-sticky-elements',
+        'dipi_hamburgers_js',              // Divi Pixel hamburger toggle
+        'dipi-popup-maker-popup-effect',   // Divi Pixel popup transitions
     ];
 
     static $defer_url_substrings = [
@@ -215,18 +196,8 @@ add_filter( 'style_loader_tag', function ( $tag, $handle ) {
 
 }, 10, 2 );
 
-add_action( 'wp_enqueue_scripts', function () {
-
-    $defer_handles = [
-        'dipi_hamburgers_js',              // hamburger.min.js — hamburger toggle animation
-        'dipi-popup-maker-popup-effect',   // popup_effect.min.js — popup transitions
-    ];
-
-    foreach ( $defer_handles as $handle ) {
-        wp_script_add_data( $handle, 'strategy', 'defer' );
-    }
-
-}, 100 );
+// Divi Pixel JS deferred via script_loader_tag filter below (not wp_script_add_data —
+// see section 6 comment: WP 6.3 dependency propagation breaks jQuery availability).
 
 
 // ─── 9. REMOVE UNUSED DIVI FONT AWESOME ICONS ────────────────────────────────
