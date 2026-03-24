@@ -7,6 +7,8 @@
 
 if ( is_admin() ) return;
 
+require __DIR__ . '/wp-performance.php';
+
 
 // ─── 0. FIX DIVI VIEWPORT META ───────────────────────────────────────────────
 // Divi registers et_add_viewport_meta which outputs a non-standard viewport tag.
