@@ -22,7 +22,19 @@ add_action( 'wp_head', function () {
 }, 0 );
 
 
-// ─── 1. PRECONNECT TO GOOGLE FONTS ───────────────────────────────────────────
+// ─── 1. PRELOAD DIVI ICON FONTS ──────────────────────────────────────────────
+// modules.woff (90 KB) and fa-solid-900.woff2 (79 KB) load on every Divi page
+// but are discovered late — they sit 574–614 ms into the network dependency
+// chain behind CSS files. Preloading moves them to the very first bytes of <head>.
+// get_template_directory_uri() correctly returns the Divi parent theme URI.
+add_action( 'wp_head', function () {
+    $divi = get_template_directory_uri();
+    echo '<link rel="preload" href="' . esc_url( $divi . '/core/admin/fonts/modules/all/modules.woff' ) . '" as="font" type="font/woff" crossorigin>' . "\n";
+    echo '<link rel="preload" href="' . esc_url( $divi . '/core/admin/fonts/fontawesome/fa-solid-900.woff2' ) . '" as="font" type="font/woff2" crossorigin>' . "\n";
+}, 1 );
+
+
+// ─── 3. PRECONNECT TO GOOGLE FONTS ───────────────────────────────────────────
 // Divi loads Google Fonts from fonts.googleapis.com and fonts.gstatic.com.
 // Preconnecting saves the DNS + TLS handshake (~100 ms) before the font CSS
 // request fires. Must run at priority 1 to beat Divi's own wp_head output.
@@ -32,7 +44,7 @@ add_action( 'wp_head', function () {
 }, 1 );
 
 
-// ─── 2. FONT-DISPLAY: SWAP ────────────────────────────────────────────────────
+// ─── 4. FONT-DISPLAY: SWAP ────────────────────────────────────────────────────
 // Prevents invisible text (FOIT) while web fonts load by forcing font-display:swap
 // on all @font-face declarations — Google Fonts, Divi icon fonts, and child theme fonts.
 add_action( 'wp_head', function () {
@@ -40,7 +52,7 @@ add_action( 'wp_head', function () {
 }, 2 );
 
 
-// ─── 3. REMOVE JQUERY MIGRATE ────────────────────────────────────────────────
+// ─── 5. REMOVE JQUERY MIGRATE ────────────────────────────────────────────────
 // jQuery Migrate is render-blocking and only patches deprecated jQuery patterns.
 // Divi 4.x does not require it on the frontend. Remove and re-wire jquery to core.
 // ROLLBACK: comment out this block if any frontend behaviour breaks.
@@ -52,7 +64,7 @@ add_action( 'wp_default_scripts', function ( $scripts ) {
 } );
 
 
-// ─── 4. DEFER DIVI NON-CRITICAL SCRIPTS ──────────────────────────────────────
+// ─── 6. DEFER DIVI NON-CRITICAL SCRIPTS ──────────────────────────────────────
 // Divi's scripts.min.js blocks the main thread after the hero image loads.
 // Strategy: WP 6.3 native defer API first, script_loader_tag filter as fallback
 // for handles registered late or assets loaded via Divi's dynamic asset system.
@@ -137,7 +149,7 @@ add_filter( 'script_loader_tag', function ( $tag, $handle, $src ) {
 }, 10, 3 );
 
 
-// ─── 5. ASYNC LOAD GOOGLE FONTS ──────────────────────────────────────────────
+// ─── 7. ASYNC LOAD GOOGLE FONTS ──────────────────────────────────────────────
 // Convert Divi's render-blocking Google Fonts <link> tags to the preload + onload
 // pattern. A <noscript> fallback handles JS-disabled browsers.
 add_filter( 'style_loader_tag', function ( $tag, $handle, $href, $media ) {
@@ -153,7 +165,21 @@ add_filter( 'style_loader_tag', function ( $tag, $handle, $href, $media ) {
 }, 10, 4 );
 
 
-// ─── 5b. FORCE DISPLAY=SWAP ON DIVI GOOGLE FONTS URL ─────────────────────────
+// ─── 7b. ASYNC LOAD DIVI CUSTOMIZER GLOBAL CSS ───────────────────────────────
+// et-divi-customizer-global.min.css is render-blocking but contains only
+// customizer color/font overrides — not needed before first paint.
+// Matched by URL substring; Divi generates the enqueue handle dynamically.
+add_filter( 'style_loader_tag', function ( $tag, $handle, $href, $media ) {
+    if ( strpos( $href, 'et-divi-customizer-global' ) === false ) {
+        return $tag;
+    }
+    $url = esc_url( $href );
+    return '<link rel="preload" href="' . $url . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n"
+         . '<noscript><link rel="stylesheet" href="' . $url . '"></noscript>' . "\n";
+}, 10, 4 );
+
+
+// ─── 7c. FORCE DISPLAY=SWAP ON DIVI GOOGLE FONTS URL ─────────────────────────
 // Divi builds its Google Fonts URL before enqueueing. Adding display=swap here
 // ensures the parameter is present even if our style_loader_tag async filter is
 // bypassed (e.g. by a caching plugin that inlines the tag).
@@ -162,7 +188,7 @@ add_filter( 'et_pb_google_fonts_url', function ( $url ) {
 } );
 
 
-// ─── 6. DIVI PIXEL (DIPI) OPTIMIZATIONS ──────────────────────────────────────
+// ─── 8. DIVI PIXEL (DIPI) OPTIMIZATIONS ──────────────────────────────────────
 // Divi Pixel is a widely-used Divi addon. These handles were verified against
 // the plugin source — update handle names if Divi Pixel changes them.
 //
@@ -201,7 +227,7 @@ add_action( 'wp_enqueue_scripts', function () {
 }, 100 );
 
 
-// ─── 8. REMOVE UNUSED DIVI FONT AWESOME ICONS ────────────────────────────────
+// ─── 9. REMOVE UNUSED DIVI FONT AWESOME ICONS ────────────────────────────────
 // ENABLE THIS: uncomment if you've confirmed no Divi modules use FA icons.
 // KEEP COMMENTED: if any module uses a Font Awesome icon (you'll see broken icons).
 //
@@ -212,7 +238,7 @@ add_action( 'wp_enqueue_scripts', function () {
 // }, 99 );
 
 
-// ─── 9. HTML OUTPUT BUFFER FIXES ─────────────────────────────────────────────
+// ─── 10. HTML OUTPUT BUFFER FIXES ────────────────────────────────────────────
 // Post-processes the full HTML to fix Divi markup that can't be changed via hooks.
 add_action( 'template_redirect', function () {
     ob_start( 'divi_performance_process_html' );
